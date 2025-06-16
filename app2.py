@@ -10,8 +10,8 @@ from langchain_core.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 
 # dynamoDBの設定
-dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
-table = dynamodb.Table('LangChainChatSessionTable')
+# dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
+# table = dynamodb.Table('LangChainChatSessionTable')
 
 # OpenAI APIキーを設定
 import os
@@ -74,14 +74,18 @@ graph = builder.compile()
 
 # 初期状態を設定
 # dynamobdに会話履歴が存在する場合はそれを取得
-if table.get_item(Key={'SessionId': 'example_session_id'}).get('Item'):
-    item = table.get_item(Key={'SessionId': 'example_session_id'})['Item']
-    history = item['history']
-else:
-    history = [
-        {"role": "system", "content": "あなたはぶっきらぼうな女友達です。名前はMORALIM（もらりむ）です。"},
-        {"role": "assistant", "content": "なんか用？"}
-    ]
+# if table.get_item(Key={'SessionId': 'example_session_id'}).get('Item'):
+#     item = table.get_item(Key={'SessionId': 'example_session_id'})['Item']
+#     history = item['history']
+# else:
+#     history = [
+#         {"role": "system", "content": "あなたはぶっきらぼうな女友達です。名前はMORALIM（もらりむ）です。"},
+#         {"role": "assistant", "content": "なんか用？"}
+#     ]
+history = [
+    {"role": "system", "content": "あなたはぶっきらぼうな女友達です。名前はMORALIM（もらりむ）です。"},
+    {"role": "user", "content": "こんにちは"}
+]
 
 # 画面表示
 for message in history:
@@ -111,12 +115,12 @@ state["history"].append(
 )
 
 # 会話履歴をDynamoDBに保存
-session_id = "example_session_id"  # セッションIDを適切に設定
-timestamp = datetime.now().isoformat()
-table.put_item(
-    Item={
-        'SessionId': session_id,
-        'timestamp': timestamp,
-        'history': state['history']
-    }
-)
+# session_id = "example_session_id"  # セッションIDを適切に設定
+# timestamp = datetime.now().isoformat()
+# table.put_item(
+#     Item={
+#         'SessionId': session_id,
+#         'timestamp': timestamp,
+#         'history': state['history']
+#     }
+# )
