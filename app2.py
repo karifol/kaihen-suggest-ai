@@ -4,6 +4,10 @@ from typing import TypedDict
 from datetime import datetime
 import dotenv
 import boto3
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langgraph.prebuilt import create_react_agent
+from langchain_core.tools import tool
+from langchain_community.tools import DuckDuckGoSearchRun
 
 # dynamoDBの設定
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
@@ -13,6 +17,18 @@ table = dynamodb.Table('LangChainChatSessionTable')
 import os
 os.environ["OPENAI_API_KEY"] = dotenv.get_key(dotenv.find_dotenv(), "OPENAI_API_KEY")
 
+# ツール
+@tool
+def search_web(query: str) -> str:
+    """ウェブ検索を行います。"""
+    if not query:
+        return "何を探してるの？具体的に教えてよ。"
+    search_tool = DuckDuckGoSearchRun()
+    results = search_tool.run(query)
+    if not results:
+        return "なんも見つからないよ"
+    return f"検索結果: {results[:500]}..."  # 最初の500文字だけ返す
+
 # 状態定義
 class ChatState(TypedDict):
     user_input: str
@@ -21,6 +37,7 @@ class ChatState(TypedDict):
 
 # OpenAIモデル初期化
 llm = ChatOpenAI(model="gpt-4o-mini")  # または gpt-3.5-turbo
+llm_with_react = create_react_agent(llm, tools=[search_web])
 
 # ノード1: ユーザー入力をそのまま次へ
 def receive_input(state: ChatState) -> ChatState:
@@ -28,8 +45,11 @@ def receive_input(state: ChatState) -> ChatState:
 
 # ノード2: LLMで応答生成
 def generate_response(state: ChatState) -> ChatState:
-    pompt = state["user_input"]
-    response = llm.invoke(state["history"]).content
+    # response = llm.invoke(state["history"]).content
+    response = llm_with_react.invoke({
+        "messages": state["history"]
+    })
+    response = response["messages"][-1].content  # 最後のメッセージを表示
     return {**state, "bot_output": response}
 
 # ノード3: 結果を表示（またはUI連携などに返す）
